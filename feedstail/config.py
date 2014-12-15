@@ -19,9 +19,11 @@
 from logging import basicConfig
 from sys import version_info
 
+import feedparser
+
 # Import from feedstail
 from utils import Storage
-
+from error import *
 
 class Config(Storage):
 
@@ -33,14 +35,35 @@ class Config(Storage):
         self.number = kwargs.get('number', None)
         self.ignore_key_error = kwargs.get('ignore_key_error', False)
         self.no_endl = kwargs.get('no_endl', False)
-	self.url = kwargs.get('url', None)
+        self.url = kwargs.get('url', None)
 
         if version_info < (2, 6):
             self.format = kwargs.get('format', u'Title: %(title)s')
             self.formatFct = format = lambda entry: self.format % entry
         else:
-            self.format = kwargs.get('format', u'Title: {title}') 
+            self.format = kwargs.get('format', u'Title: {title}')
             self.formatFct = lambda entry: self.format.format(**entry)
+
+        self.entry_class = type("Entry",
+                                (feedparser.FeedParserDict,),
+                                {'__str__': self.format_entry()})
+
+    def format_entry(self):
+        def mystr(x):
+            try:
+                output = self.formatFct(x)
+                if self.no_endl:
+                    output = re.sub(r"[\t\r\n\s]+", r" ", output)
+            except KeyError, key:
+                raise FeedKeyError(key.args[0])
+            else:
+                return output.encode('utf-8')
+
+        return mystr
+
+    def make_entry(self, d):
+        entry = self.entry_class(**d)
+        return entry
 
 basicConfig(format='%(levelname)s: %(message)s')
 

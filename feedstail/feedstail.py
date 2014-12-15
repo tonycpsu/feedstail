@@ -21,6 +21,7 @@ import re
 # Import from FeedParser
 from feedparser import parse
 from config import Config
+from error import *
 
 def isnew(tail, config, entry):
     if config.key not in entry:
@@ -32,17 +33,6 @@ def isnew(tail, config, entry):
         if entry[config.key] == item[config.key]:
             return False
     return True
-
-
-def show(config, entry):
-    try:
-        output = config.formatFct(entry)
-        if config.no_endl:
-            output = re.sub(r"[\t\r\n\s]+", r" ", output)
-    except KeyError, key:
-        raise FeedKeyError(key.args[0])
-    else:
-        return output.encode('utf-8')
 
 def feedGenerator(config):
     def cycle(tail, number=None):
@@ -63,7 +53,9 @@ def feedGenerator(config):
         for entry in entries:
             if isnew(tail, config, entry):
                 tail = [entry] + tail[:100]
-                result.append( show(config, entry) )
+                entry.__str__ = 1
+                # result.append( show(config, entry) )
+                result.append( config.make_entry(entry) )
         return (tail, result)
 
     tail = []
@@ -72,13 +64,3 @@ def feedGenerator(config):
     while True:
         (tail, result) = cycle(tail)
         yield result
-
-
-class FeedKeyError(KeyError):
-
-    def __init__(self, key):
-        self.key = key
-
-
-    def __str__(self):
-        return str(self.key)
