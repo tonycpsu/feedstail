@@ -53,8 +53,6 @@ def feedGenerator(config):
         for entry in entries:
             if isnew(tail, config, entry):
                 tail = [entry] + tail[:100]
-                entry.__str__ = 1
-                # result.append( show(config, entry) )
                 result.append( config.make_entry(entry) )
         return (tail, result)
 
